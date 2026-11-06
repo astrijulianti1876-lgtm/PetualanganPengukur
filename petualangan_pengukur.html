@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Petualangan Pengukur</title>
+<style>
+  :root { --green:#16784a; --mint:#e8f7ee; --ink:#18352a; --gold:#ffd166; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:Arial, sans-serif; color:var(--ink);
+    background:linear-gradient(135deg,#dff6e8,#fff6d8); min-height:100vh; }
+  .wrap { max-width:850px; margin:auto; padding:24px 16px 40px; }
+  header { text-align:center; padding:18px 10px 22px; }
+  .hero { font-size:52px; }
+  h1 { margin:8px 0; color:var(--green); font-size:clamp(27px,5vw,40px); }
+  header p { margin:8px auto; max-width:600px; line-height:1.5; }
+  .map { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; margin:16px 0 22px; }
+  .place { background:#fff; border:2px solid #d3eadb; border-radius:17px; padding:15px; display:flex; gap:12px; align-items:center; box-shadow:0 4px 12px #174b2510; }
+  .place .emoji { font-size:32px; }
+  .place strong { display:block; margin-bottom:5px; }
+  .place small { color:#557263; }
+  .panel { background:white; border-radius:22px; padding:clamp(18px,4vw,28px); box-shadow:0 10px 30px #174b2517; }
+  .topline { display:flex; justify-content:space-between; gap:10px; flex-wrap:wrap; color:#557263; font-size:14px; }
+  .bar { height:9px; background:#e8eee9; border-radius:20px; overflow:hidden; margin:12px 0 22px; }
+  .fill { height:100%; width:20%; background:var(--green); transition:width .25s; }
+  h2 { font-size:clamp(20px,4vw,27px); line-height:1.35; }
+  .answers { display:grid; gap:10px; margin:20px 0; }
+  .answer { border:2px solid #dce9df; background:white; color:var(--ink); padding:14px 16px; border-radius:13px; text-align:left; font-size:16px; cursor:pointer; }
+  .answer:hover:not(:disabled), .answer.selected { border-color:var(--green); background:var(--mint); }
+  .answer:disabled { cursor:default; opacity:1; }
+  button.primary { background:var(--green); color:white; border:0; border-radius:13px; padding:14px 20px; font-size:16px; font-weight:bold; cursor:pointer; width:100%; }
+  button.primary:disabled { opacity:.45; cursor:not-allowed; }
+  .feedback { border-radius:13px; background:#f0f6f1; padding:14px; margin:12px 0; line-height:1.5; }
+  .good { color:#16784a; font-weight:bold; } .bad { color:#b64b37; font-weight:bold; }
+  .hidden { display:none; }
+  .score { font-size:42px; font-weight:bold; color:var(--green); }
+  footer { text-align:center; color:#648071; font-size:13px; margin-top:20px; }
+  @media(max-width:540px) { .map { grid-template-columns:1fr; } .place { padding:12px; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="hero">🧭📏⚖️</div>
+    <h1>Petualangan Pengukur</h1>
+    <p>Jelajahi empat tempat, selesaikan tantangan pengukuran, dan kumpulkan bintang untuk menjadi <b>Master Pengukur!</b></p>
+  </header>
+
+  <section class="map" aria-label="Peta petualangan">
+    <div class="place"><span class="emoji">🌳</span><div><strong>Hutan Panjang</strong><small>Misi mengukur panjang</small></div></div>
+    <div class="place"><span class="emoji">🍎</span><div><strong>Pasar Berat</strong><small>Misi mengukur berat</small></div></div>
+    <div class="place"><span class="emoji">🕒</span><div><strong>Kota Waktu</strong><small>Misi mengukur waktu</small></div></div>
+    <div class="place"><span class="emoji">🏞️</span><div><strong>Danau Volume</strong><small>Misi mengukur volume</small></div></div>
+  </section>
+
+  <main class="panel" id="game">
+    <div class="topline"><span id="level">Level 1 – Hutan Panjang</span><span id="counter">Misi 1 dari 5</span><span>⭐ <b id="score">0</b></span></div>
+    <div class="bar"><div class="fill" id="progress"></div></div>
+    <h2 id="question">Panjang sebuah pensil paling tepat diukur menggunakan ...</h2>
+    <div class="answers" id="answers"></div>
+    <div id="feedback" class="feedback hidden" aria-live="polite"></div>
+    <button class="primary" id="action" disabled>Periksa Jawaban</button>
+  </main>
+
+  <section class="panel hidden" id="result" style="text-align:center">
+    <div style="font-size:60px">🏆</div>
+    <h2>Petualangan Selesai!</h2>
+    <div class="score" id="finalScore">0/100</div>
+    <p id="message">Skor akhir kamu</p>
+    <button class="primary" id="restart">Main Lagi</button>
+  </section>
+  <footer>Belajar pengukuran jadi lebih seru! 🌟</footer>
+</div>
+<script>
+const missions = [
+ {level:"Level 1 – Hutan Panjang",q:"Panjang sebuah pensil paling tepat diukur menggunakan ...",a:["Timbangan","Penggaris","Jam"],correct:1,why:"Penggaris digunakan untuk mengukur panjang benda."},
+ {level:"Level 2 – Pasar Berat",q:"Alat yang digunakan untuk mengukur berat beras adalah ...",a:["Meteran","Gelas ukur","Timbangan"],correct:2,why:"Timbangan digunakan untuk mengukur berat benda."},
+ {level:"Level 3 – Kota Waktu",q:"Satu jam sama dengan berapa menit?",a:["30 menit","60 menit","100 menit"],correct:1,why:"Satu jam terdiri dari 60 menit."},
+ {level:"Level 4 – Danau Volume",q:"Satuan yang tepat untuk mengukur banyak air dalam galon adalah ...",a:["Liter","Meter","Kilogram"],correct:0,why:"Liter merupakan satuan untuk mengukur volume cairan."},
+ {level:"Misi Terakhir – Tantangan Pengukur",q:"Ibu membeli 2 kg gula dan 1 kg tepung. Berapa jumlah berat semuanya?",a:["1 kg","2 kg","3 kg"],correct:2,why:"2 kg + 1 kg = 3 kg."}
+];
+let index=0, selected=null, score=0, answered=false;
+const $=id=>document.getElementById(id);
+function render(){
+ const m=missions[index]; selected=null; answered=false;
+ $("level").textContent=m.level; $("counter").textContent=`Misi ${index+1} dari ${missions.length}`;
+ $("score").textContent=score; $("progress").style.width=((index+1)/missions.length*100)+"%";
+ $("question").textContent=m.q; $("feedback").classList.add("hidden");
+ $("action").textContent="Periksa Jawaban"; $("action").disabled=true;
+ $("answers").innerHTML="";
+ m.a.forEach((answer,i)=>{
+   const b=document.createElement("button"); b.className="answer"; b.textContent=String.fromCharCode(65+i)+". "+answer;
+   b.addEventListener("click",()=>{ if(answered)return; selected=i;
+     document.querySelectorAll(".answer").forEach(x=>x.classList.remove("selected"));
+     b.classList.add("selected"); $("action").disabled=false;
+   });
+   $("answers").appendChild(b);
+ });
+}
+$("action").addEventListener("click",()=>{
+ if(!answered){
+   if(selected===null)return;
+   answered=true; const m=missions[index], correct=selected===m.correct;
+   if(correct)score+=20;
+   document.querySelectorAll(".answer").forEach((b,i)=>{
+     b.disabled=true;
+     if(i===m.correct)b.style.borderColor="#16784a";
+     if(i===selected&&!correct)b.style.borderColor="#c75b48";
+   });
+   $("score").textContent=score;
+   $("feedback").classList.remove("hidden");
+   $("feedback").innerHTML=`<span class="${correct?"good":"bad"}">${correct?"🎉 Hebat! Jawaban benar!":"Belum tepat, tetap semangat!"}</span><br>${correct?"":"Jawaban yang benar: "+m.a[m.correct]+". "}${m.why}`;
+   $("action").textContent=index===missions.length-1?"Lihat Hasil":"Lanjut Petualangan";
+ } else {
+   index++;
+   if(index<missions.length){render();}
+   else{
+     $("game").classList.add("hidden"); $("result").classList.remove("hidden");
+     $("finalScore").textContent=score+"/100";
+     $("message").textContent=score===100?"Luar biasa! Kamu menjadi Master Pengukur!":score>=60?"Hebat! Kamu berhasil menyelesaikan petualangan!":"Tetap semangat! Ayo belajar pengukuran lagi!";
+   }
+ }
+});
+$("restart").addEventListener("click",()=>{index=0;score=0;$("result").classList.add("hidden");$("game").classList.remove("hidden");render();});
+render();
+</script>
+</body>
+</html>
